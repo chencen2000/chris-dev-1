@@ -25,10 +25,10 @@ void logIt(string msg) {
     string s = str_format("[EI]: %s", msg.c_str());
     OutputDebugString(s.c_str());
 }
-void logIt(char* msg) {
-    string s = str_format("[EI]: %s", msg);
-    OutputDebugString(s.c_str());
-}
+// void logIt(char* msg) {
+//     string s = str_format("[EI]: %s", msg);
+//     OutputDebugString(s.c_str());
+// }
 
 int main(int argc, char *argv[]) {
     int ret = ERROR_INVALID_PARAMETER;
@@ -56,7 +56,8 @@ int main(int argc, char *argv[]) {
         else {
             logIt(str_format("Loaded image filename (%s). (%dx%d). resize to (%dx%d)", 
             fn.c_str(), img.cols, img.rows, EI_CLASSIFIER_INPUT_WIDTH, EI_CLASSIFIER_INPUT_HEIGHT));
-
+            // TODO: resize and crop image
+            
         }
     }
     else {
