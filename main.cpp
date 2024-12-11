@@ -2,6 +2,7 @@
 #include <shlwapi.h>
 #include <iostream>
 #include <string>
+#include <fstream>
 #include <opencv2/core.hpp>
 #include <opencv2/imgcodecs.hpp>
 #include <opencv2/imgproc.hpp>
@@ -63,8 +64,42 @@ void resize_and_crop(cv::Mat *in_frame, cv::Mat *out_frame)
     *out_frame = resized(crop_region);
 }
 
+// using features from web site
 int main(int argc, char *argv[]) {
-    
+    vector<float> features;
+    string s;
+    if (argc > 1) {
+        s = argv[1];
+        std::ifstream file(s);
+        if (file.is_open()) {
+            string line;
+            while (getline(file, line)) {
+                stringstream check1(line);
+                while(getline(check1, s, ',')) {
+                    float f = std::stof(s);
+                    features.push_back(f);
+                }
+            }
+        }
+        s = str_format("There are %d features in %s totally.", features.size(), argv[1]);
+        cout << s << endl;
+        // construct a signal from the features buffer 
+        signal_t signal;
+        numpy::signal_from_buffer(&features[0], EI_CLASSIFIER_INPUT_WIDTH * EI_CLASSIFIER_INPUT_HEIGHT, &signal);
+        // run the classifier
+        ei_impulse_result_t result;
+        EI_IMPULSE_ERROR res = run_classifier(&signal, &result, false);
+        if (res != 0) {
+            // printf("ERR: Failed to run classifier (%d)\n", res);
+            return -1;
+        }
+        logIt(str_format("Predictions (DSP: %d ms., Classification: %d ms., Anomaly: %d ms.): \n",
+            result.timing.dsp, result.timing.classification, result.timing.anomaly));
+        // printf("#Classification results:\n");
+        for (size_t ix = 0; ix < EI_CLASSIFIER_LABEL_COUNT; ix++) {
+            // printf("%s: %.05f\n", result.classification[ix].label, result.classification[ix].value);
+        }                
+    }
 }
 
 int __main(int argc, char *argv[]) {
@@ -99,9 +134,9 @@ int __main(int argc, char *argv[]) {
             // calc feature
             if (!cropped.empty()) {
                 size_t feature_ix = 0;
-                for (int rx = 0; rx < (int)input.rows; rx++) {
-                    for (int cx = 0; cx < (int)input.cols; cx++) {
-                        cv::Vec3b pixel = input.at<cv::Vec3b>(rx, cx);
+                for (int rx = 0; rx < (int)cropped.rows; rx++) {
+                    for (int cx = 0; cx < (int)cropped.cols; cx++) {
+                        cv::Vec3b pixel = cropped.at<cv::Vec3b>(rx, cx);
                         uint8_t b = pixel.val[0];
                         uint8_t g = pixel.val[1];
                         uint8_t r = pixel.val[2];
@@ -116,14 +151,14 @@ int __main(int argc, char *argv[]) {
             ei_impulse_result_t result;
             EI_IMPULSE_ERROR res = run_classifier(&signal, &result, false);
             if (res != 0) {
-                printf("ERR: Failed to run classifier (%d)\n", res);
+                // printf("ERR: Failed to run classifier (%d)\n", res);
                 return -1;
             }
             logIt(str_format("Predictions (DSP: %d ms., Classification: %d ms., Anomaly: %d ms.): \n",
-                result.timing.dsp, result.timing.classification, result.timing.anomaly)) 
-            printf("#Classification results:\n");
+                result.timing.dsp, result.timing.classification, result.timing.anomaly));
+            // printf("#Classification results:\n");
             for (size_t ix = 0; ix < EI_CLASSIFIER_LABEL_COUNT; ix++) {
-                printf("%s: %.05f\n", result.classification[ix].label, result.classification[ix].value);
+                // printf("%s: %.05f\n", result.classification[ix].label, result.classification[ix].value);
             }                
         }
     }
