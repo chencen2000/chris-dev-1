@@ -55,17 +55,19 @@ void resize_and_crop(cv::Mat *in_frame, cv::Mat *out_frame)
         (resize_size.height - resize_size.width) / 2 :
         0;
 
-    cv::Rect crop_region(crop_x, crop_y, EI_CLASSIFIER_INPUT_WIDTH, EI_CLASSIFIER_INPUT_HEIGHT);
+    // cv::Rect crop_region(crop_x, crop_y, EI_CLASSIFIER_INPUT_WIDTH, EI_CLASSIFIER_INPUT_HEIGHT);
 
     //if (use_debug) {
     //    printf("crop_region x=%d y=%d width=%d height=%d\n", crop_x, crop_y, EI_CLASSIFIER_INPUT_WIDTH, EI_CLASSIFIER_INPUT_HEIGHT);
     //}
 
-    *out_frame = resized(crop_region);
+    // *out_frame = resized(crop_region);
+    *out_frame = resized;
 }
 
 // using features from web site
-int main(int argc, char *argv[]) {
+int main_features(int argc, char *argv[]) 
+{
     vector<float> features;
     string s;
     if (argc > 1) {
@@ -91,18 +93,26 @@ int main(int argc, char *argv[]) {
         EI_IMPULSE_ERROR res = run_classifier(&signal, &result, false);
         if (res != 0) {
             // printf("ERR: Failed to run classifier (%d)\n", res);
+            s = str_format("ERR: Failed to run classifier (%d)\n", res);
+            cout << s << endl;
             return -1;
         }
-        logIt(str_format("Predictions (DSP: %d ms., Classification: %d ms., Anomaly: %d ms.): \n",
-            result.timing.dsp, result.timing.classification, result.timing.anomaly));
+        s = str_format("Predictions (DSP: %d ms., Classification: %d ms., Anomaly: %d ms.): \n",
+            result.timing.dsp, result.timing.classification, result.timing.anomaly);
+        cout << s << endl;
         // printf("#Classification results:\n");
+        cout << "#Classification results:" << endl;
         for (size_t ix = 0; ix < EI_CLASSIFIER_LABEL_COUNT; ix++) {
             // printf("%s: %.05f\n", result.classification[ix].label, result.classification[ix].value);
+            s = str_format("%s: %.05f\n", result.classification[ix].label, result.classification[ix].value);
+            cout << s << endl;
         }                
     }
+    return 0;
 }
 
-int __main(int argc, char *argv[]) {
+int main(int argc, char *argv[]) 
+{
     int ret = ERROR_INVALID_PARAMETER;
     char buf[MAX_PATH];
     ZeroMemory(buf, sizeof(buf));
@@ -127,7 +137,7 @@ int __main(int argc, char *argv[]) {
         }
         else {
             logIt(str_format("Loaded image filename (%s). (%dx%d). resize to (%dx%d)", 
-            fn.c_str(), img.cols, img.rows, EI_CLASSIFIER_INPUT_WIDTH, EI_CLASSIFIER_INPUT_HEIGHT));
+                fn.c_str(), img.cols, img.rows, EI_CLASSIFIER_INPUT_WIDTH, EI_CLASSIFIER_INPUT_HEIGHT));
             // resize and crop image
             cv::Mat cropped;
             resize_and_crop(&img, &cropped);
@@ -147,18 +157,26 @@ int __main(int argc, char *argv[]) {
             // construct a signal from the features buffer 
             signal_t signal;
             numpy::signal_from_buffer(features, EI_CLASSIFIER_INPUT_WIDTH * EI_CLASSIFIER_INPUT_HEIGHT, &signal);
+            // init
+            // run_classifier_init();
             // run the classifier
             ei_impulse_result_t result;
             EI_IMPULSE_ERROR res = run_classifier(&signal, &result, false);
+            // EI_IMPULSE_ERROR res = run_classifier_continuous(&signal, &result);
             if (res != 0) {
                 // printf("ERR: Failed to run classifier (%d)\n", res);
+                s = str_format("ERR: Failed to run classifier (%d)\n", res);
+                logIt(s);
                 return -1;
             }
-            logIt(str_format("Predictions (DSP: %d ms., Classification: %d ms., Anomaly: %d ms.): \n",
-                result.timing.dsp, result.timing.classification, result.timing.anomaly));
+            s = str_format("Predictions (DSP: %d ms., Classification: %d ms., Anomaly: %d ms.): \n",
+                result.timing.dsp, result.timing.classification, result.timing.anomaly);
+            logIt(s);
             // printf("#Classification results:\n");
             for (size_t ix = 0; ix < EI_CLASSIFIER_LABEL_COUNT; ix++) {
                 // printf("%s: %.05f\n", result.classification[ix].label, result.classification[ix].value);
+                s = str_format("%s: %.05f\n", result.classification[ix].label, result.classification[ix].value);
+                logIt(s);
             }                
         }
     }
